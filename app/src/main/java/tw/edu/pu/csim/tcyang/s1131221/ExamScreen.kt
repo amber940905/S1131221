@@ -2,6 +2,7 @@ package tw.edu.pu.csim.tcyang.s1131221
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -12,21 +13,37 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlin.math.roundToInt
 
 @Composable
-fun ExamScreen() {
+fun ExamScreen(viewModel: ExamViewModel = viewModel()) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Yellow)
     ) {
         val screenHeight = this.maxHeight
+        val screenWidth = this.maxWidth
+        val screenHeightPx = with(LocalDensity.current) { screenHeight.toPx() }
+        val screenWidthPx = with(LocalDensity.current) { screenWidth.toPx() }
+
+        // Start the dropping animation
+        LaunchedEffect(Unit) {
+            viewModel.resetServiceIcon(screenWidthPx)
+            viewModel.startDropping(screenHeightPx, screenWidthPx)
+        }
+
         val imageSize = 110.dp // Approximation of 300px
 
         // Centered Content
@@ -46,10 +63,26 @@ fun ExamScreen() {
             ) {
                 Text(text = "瑪利亞基金會服務大考驗")
                 Text(text = "作者:資管2B謝雨安")
-                Text(text = "螢幕大小:1080.0*1920.0")
+                Text(text = "螢幕大小:${screenWidth.value.roundToInt()}*${screenHeight.value.roundToInt()}")
                 Text(text = "成績:0分")
             }
         }
+
+        // Dropping Service Icon
+        Image(
+            painter = painterResource(id = viewModel.serviceIcon.value),
+            contentDescription = "Service Icon",
+            modifier = Modifier
+                .offset { IntOffset(viewModel.serviceIconX.value.roundToInt(), viewModel.serviceIconY.value.roundToInt()) }
+                .size(imageSize)
+                .pointerInput(Unit) {
+                    detectDragGestures { change, dragAmount ->
+                        change.consume()
+                        viewModel.updateServiceIconX(dragAmount.x)
+                    }
+                }
+        )
+
 
         // Role Icons
         Image(
